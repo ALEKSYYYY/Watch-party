@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Movie Night</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#16162a">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#16162a;--sf:#222240;--ink:#f0eff8;--mute:#a2a1c2;--line:#34345a;--ac:#f4b13a;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 16px/1.45 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:18px 16px 36px}
+h1{font-size:2rem;line-height:1.05;margin:6px 0 10px;font-weight:800;letter-spacing:-.02em}
+p{margin:0 0 14px;color:var(--mute)}
+input,button{font:inherit;color:inherit}
+input[type=text]{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:var(--sf)}
+button,.btn{display:inline-block;border:1px solid var(--line);border-radius:14px;padding:13px 16px;background:var(--sf);cursor:pointer;font-weight:700;text-align:center}
+.pri{background:var(--ac);color:#2a1a00;border-color:transparent}
+button:focus-visible,input:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.stack{display:grid;gap:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>*{flex:1;min-width:0}
+video{width:100%;border-radius:18px;background:#000;max-height:55vh}
+#room{display:none}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.code{font-size:1.5rem;font-weight:800;letter-spacing:.04em}
+.st{font-size:.85rem;color:var(--mute)}
+#file{display:none}
+#log{height:140px;overflow-y:auto;border:1px solid var(--line);border-radius:16px;background:var(--sf);padding:10px 12px;margin:12px 0 8px}
+.m{margin:0 0 6px;overflow-wrap:anywhere}
+.m.s{color:var(--mute);font-size:.88rem}
+.m b{color:var(--ac)}
+.hint{font-size:.85rem;color:var(--mute);margin:4px 0 0}
+.tabs{display:flex;gap:6px;margin:12px 0 8px}
+.tab{flex:1;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--sf);font-weight:700;cursor:pointer;text-align:center}
+.tab.on{background:var(--ac);color:#2a1a00;border-color:transparent}
+#stage{position:relative;min-height:200px}
+#webwrap{display:none;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#0d0d1a}
+#webframe{width:100%;height:55vh;border:0;background:#000}
+#webfallback{display:none;padding:28px 20px;text-align:center}
+#webfallback h2{margin:0 0 8px;font-size:1.25rem}
+#webfallback p{margin:0 0 16px}
+#webfallback a.btn{display:inline-block;margin-top:8px;text-decoration:none}
+.badge{display:inline-block;font-size:.75rem;padding:3px 8px;border-radius:999px;background:var(--line);color:var(--mute);margin-left:6px}
+</style>
+</head>
+<body>
+<main>
+<section id="joinv">
+<h1>Movie night, in sync.</h1>
+<p>Watch local files or direct video links perfectly in sync. Or share any website link so everyone opens the same page together.</p>
+<div class="stack">
+<input type="text" id="nick" placeholder="Your name" maxlength="20" autocomplete="nickname">
+<input type="text" id="code" placeholder="Room code (leave empty to make one)" maxlength="12" autocapitalize="none" autocomplete="off">
+<button class="pri" id="join">Start or join room</button>
+<button id="install" hidden>Install app</button>
+</div>
+</section>
+
+<section id="room">
+<div class="top">
+<div><div class="st">Room code, share it with friends</div><div class="code" id="rc"></div></div>
+<div style="text-align:right"><div class="st" id="st"></div><div class="st" id="who"></div></div>
+</div>
+
+<div class="tabs">
+<button class="tab on" id="tabvideo" type="button">Video</button>
+<button class="tab" id="tabweb" type="button">Website</button>
+</div>
+
+<div id="stage">
+  <!-- VIDEO MODE -->
+  <div id="videomode">
+    <video id="v" controls playsinline crossorigin="anonymous"></video>
+    <div class="row" style="margin-top:10px">
+      <label class="btn pri" for="file">Pick movie file</label>
+      <button id="leave">Leave</button>
+    </div>
+    <input type="file" id="file" accept="video/*">
+    <div class="stack" style="margin-top:10px">
+      <input type="text" id="url" placeholder="Or paste a direct video link (.mp4 / .webm)" autocomplete="off" spellcheck="false">
+      <button class="pri" id="loadurl">Load video link</button>
+      <p class="hint">Only direct video file links work here. YouTube/Netflix pages belong in the Website tab.</p>
+    </div>
+  </div>
+
+  <!-- WEBSITE MODE -->
+  <div id="webmode" hidden>
+    <div id="webwrap">
+      <iframe id="webframe" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation" allowfullscreen></iframe>
+      <div id="webfallback">
+        <h2>This site can’t be embedded</h2>
+        <p>Most video sites block being shown inside another page. Everyone can still open the exact same link together.</p>
+        <a class="btn pri" id="openlink" href="#" target="_blank" rel="noopener">Open the link</a>
+        <p class="hint" style="margin-top:14px">Use the chat below to stay coordinated (play, pause, etc.).</p>
+      </div>
+    </div>
+    <div class="stack" style="margin-top:10px">
+      <input type="text" id="weblink" placeholder="Paste any website link (YouTube, article, etc.)" autocomplete="off" spellcheck="false">
+      <button class="pri" id="loadweb">Share website with room</button>
+      <p class="hint">Everyone in the room will see the same link. If the site allows it, it appears here; otherwise a big Open button is shown.</p>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button id="leave2">Leave</button>
+    </div>
+  </div>
+</div>
+
+<div id="log" aria-live="polite"></div>
+<div class="row">
+<input type="text" id="msg" placeholder="Say something" maxlength="300" autocomplete="off">
+<button id="send" style="flex:0 0 auto">Send</button>
+</div>
+</section>
+</main>
+
+<script>
+const $=s=>document.querySelector(s),v=$('#v'),me=Math.random().toString(36).slice(2,10);
+let room,es,nick,remote=0,info=null,dip,loadingUrl=false,mode='video',currentWeb=null;
+const peers=new Map();
+const clean=s=>String(s==null?'':s).replace(/[\u0000-\u001f\u200b-\u200f\u202a-\u202e\u2060\ufeff]/g,'').slice(0,300);
+
+function log(t,who){
+  const d=document.createElement('div');d.className='m'+(who?'':' s');
+  if(who){const b=document.createElement('b');b.textContent=who+' ';d.appendChild(b)}
+  d.appendChild(document.createTextNode(t));
+  const l=$('#log');l.appendChild(d);l.scrollTop=l.scrollHeight}
+const post=m=>fetch('/send?room='+room+'&id='+me,{method:'POST',body:JSON.stringify({...m,n:nick})}).catch(()=>{});
+const count=()=>{$('#who').textContent=peers.size?(peers.size+1)+' watching':'Just you'};
+const share=()=>{
+  if(mode==='web'&&currentWeb){
+    post({t:'web',url:currentWeb});
+    return;
+  }
+  if(!info)return;
+  if(info.url)post({t:'url',url:info.url,name:info.name,dur:info.dur});
+  else post({t:'file',name:info.name,dur:info.dur});
+  post({t:'state',pos:v.currentTime,play:!v.paused});
+};
+
+function setMode(m){
+  mode=m;
+  $('#tabvideo').classList.toggle('on',m==='video');
+  $('#tabweb').classList.toggle('on',m==='web');
+  $('#videomode').hidden=m!=='video';
+  $('#webmode').hidden=m!=='web';
+}
+$('#tabvideo').onclick=()=>setMode('video');
+$('#tabweb').onclick=()=>setMode('web');
+
+// ---- Video helpers ----
+function apply(pos,play){
+  remote=Date.now();
+  if(Math.abs(v.currentTime-pos)>1.5)v.currentTime=pos;
+  if(play&&v.paused)v.play().catch(()=>log('Tap play to join in.'));
+  if(!play&&!v.paused)v.pause()}
+const mine=()=>Date.now()-remote>700;
+v.onplay=()=>mine()&&post({t:'play',pos:v.currentTime});
+v.onpause=()=>mine()&&post({t:'pause',pos:v.currentTime});
+v.onseeked=()=>mine()&&post({t:'seek',pos:v.currentTime,play:!v.paused});
+v.onerror=()=>{
+  if(loadingUrl){
+    log('This link can’t be played as a video. Use a direct .mp4 / .webm file link, or switch to the Website tab.');
+    loadingUrl=false;
+  }else{
+    log('This file can’t play here. MP4 (H.264) works best.');
+  }
+};
+
+function loadSource(src,name,isUrl,fromRemote){
+  return new Promise((resolve,reject)=>{
+    loadingUrl=!!isUrl;
+    const onMeta=()=>{
+      v.removeEventListener('loadedmetadata',onMeta);
+      v.removeEventListener('error',onErr);
+      const dur=v.duration;
+      info={name:clean(name).slice(0,80)||'Video',dur,url:isUrl?src:null};
+      loadingUrl=false;
+      log((fromRemote?'Friend loaded: ':'Loaded ')+info.name);
+      if(!fromRemote)share();
+      resolve(info);
+    };
+    const onErr=()=>{
+      v.removeEventListener('loadedmetadata',onMeta);
+      v.removeEventListener('error',onErr);
+      loadingUrl=false;
+      reject(new Error('cannot play'));
+    };
+    v.addEventListener('loadedmetadata',onMeta);
+    v.addEventListener('error',onErr);
+    v.removeAttribute('src');
+    v.load();
+    v.src=src;
+  });
+}
+
+// ---- Website helpers ----
+function showWeb(url,fromRemote){
+  currentWeb=url;
+  $('#webwrap').style.display='block';
+  $('#webfallback').style.display='none';
+  $('#webframe').style.display='block';
+  $('#webframe').src='about:blank';
+  // Try embedding
+  setTimeout(()=>{
+    try{
+      $('#webframe').src=url;
+      // Many sites will just show blank / refused. We can't reliably detect all cases,
+      // so we also always show the Open button as a safety net after a short delay.
+      setTimeout(()=>{
+        // Keep iframe visible, but make sure Open button is always available
+        $('#openlink').href=url;
+        $('#openlink').textContent='Open this link in a new tab';
+      },800);
+    }catch(e){
+      showWebFallback(url);
+    }
+  },50);
+  log((fromRemote?'Friend shared website: ':'Shared website: ')+url);
+  if(!fromRemote)post({t:'web',url});
+}
+
+function showWebFallback(url){
+  $('#webframe').style.display='none';
+  $('#webfallback').style.display='block';
+  $('#openlink').href=url;
+  $('#openlink').textContent='Open this link';
+}
+
+function tryLoadWeb(fromRemote){
+  let raw=$('#weblink').value.trim();
+  if(!raw&&!fromRemote){log('Paste a website link first.');return}
+  if(!raw)return;
+  if(!/^https?:\/\//i.test(raw))raw='https://'+raw;
+  let url;
+  try{url=new URL(raw).href}catch(e){log('That doesn’t look like a valid link.');return}
+  setMode('web');
+  showWeb(url,!!fromRemote);
+  if(!fromRemote)$('#weblink').value='';
+}
+
+// ---- Message handler ----
+function on(m){
+  if(m.from===me)return;
+  if(m.t==='leave'){const x=peers.get(m.from);if(x){peers.delete(m.from);log(x+' left')}count();return}
+  const n=clean(m.n).slice(0,20)||'Friend';
+  if(!peers.has(m.from)){peers.set(m.from,n);log(n+' joined');count();post({t:'hi'});share()}
+  const p=Number(m.pos),ok=isFinite(p)&&p>=0;
+  if(m.t==='play'&&ok)apply(p,true);
+  else if(m.t==='pause'&&ok)apply(p,false);
+  else if(m.t==='seek'&&ok)apply(p,!!m.play);
+  else if(m.t==='state'&&ok&&info)apply(p,!!m.play);
+  else if(m.t==='file'&&info&&Math.abs(Number(m.dur)-info.dur)>2)log(n+' has a different version of the movie, so sync may drift.');
+  else if(m.t==='url'&&m.url){
+    const url=clean(m.url).slice(0,2000);
+    if(!url||(info&&info.url===url))return;
+    setMode('video');
+    loadSource(url,m.name||url,true,true).then(()=>{if(ok)apply(p,!!m.play)}).catch(()=>log(n+' shared a video link that can’t play on this device.'));
+  }
+  else if(m.t==='web'&&m.url){
+    const url=clean(m.url).slice(0,2000);
+    if(!url||url===currentWeb)return;
+    setMode('web');
+    showWeb(url,true);
+  }
+  else if(m.t==='chat')log(clean(m.x),n)
+}
+
+// ---- UI wiring ----
+$('#file').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  setMode('video');
+  const src=URL.createObjectURL(f);
+  loadSource(src,f.name,false,false).catch(()=>log('This file can’t play here. MP4 (H.264) works best.'));
+};
+
+function tryLoadUrl(){
+  let raw=$('#url').value.trim();
+  if(!raw){log('Paste a video link first.');return}
+  if(!/^https?:\/\//i.test(raw))raw='https://'+raw;
+  let url;
+  try{url=new URL(raw).href}catch(e){log('That doesn’t look like a valid link.');return}
+  setMode('video');
+  log('Trying to load the video link…');
+  loadSource(url,url.split('/').pop().split('?')[0]||'Video',true,false)
+    .then(()=>{$('#url').value=''})
+    .catch(()=>{});
+}
+$('#loadurl').onclick=tryLoadUrl;
+$('#url').addEventListener('keydown',e=>{if(e.key==='Enter')tryLoadUrl()});
+
+$('#loadweb').onclick=()=>tryLoadWeb(false);
+$('#weblink').addEventListener('keydown',e=>{if(e.key==='Enter')tryLoadWeb(false)});
+
+$('#join').onclick=()=>{
+  nick=clean($('#nick').value).trim().slice(0,20)||'Friend';
+  room=($('#code').value||Math.random().toString(36).slice(2,7)).toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,12);
+  try{localStorage.setItem('nick',nick)}catch(e){}
+  es=new EventSource('/events?room='+room+'&id='+me);
+  es.onmessage=e=>{try{on(JSON.parse(e.data))}catch(x){}};
+  es.onopen=()=>{$('#st').textContent='Connected';post({t:'hi'})};
+  es.onerror=()=>{$('#st').textContent='Reconnecting…'};
+  $('#rc').textContent=room;$('#joinv').style.display='none';$('#room').style.display='block';count();
+  log('Use the Video tab for files & direct links, or the Website tab to share any page with the room.');
+};
+
+function leave(){if(es)es.close();location.reload()}
+$('#leave').onclick=leave;
+$('#leave2').onclick=leave;
+
+const chat=()=>{const t=clean($('#msg').value).trim();if(!t)return;post({t:'chat',x:t});log(t,'You');$('#msg').value=''};
+$('#send').onclick=chat;
+$('#msg').addEventListener('keydown',e=>{if(e.key==='Enter')chat()});
+
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();dip=e;$('#install').hidden=false});
+$('#install').onclick=()=>{if(dip){dip.prompt();dip=null;$('#install').hidden=true}};
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+try{$('#nick').value=localStorage.getItem('nick')||''}catch(e){}
+$('#code').value=(location.hash||'').slice(1).toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,12);
+</script>
+</body>
+</html>
